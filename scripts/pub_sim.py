@@ -1,7 +1,7 @@
 # pub_sim.py
 import requests, time, json
 
-API_URL = "http://localhost:8000/api/test_receive"  # dùng endpoint test_receive
+API_URL = "https://dacn-tranhoquangvinh.onrender.com"  # dùng endpoint test_receive
 
 for i in range(5):
     payload = {
