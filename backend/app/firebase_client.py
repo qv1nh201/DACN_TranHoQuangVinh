@@ -8,11 +8,18 @@ from firebase_admin import credentials, db
 from dotenv import load_dotenv
 from pathlib import Path
 
+import os
+import json
+import firebase_admin
+from firebase_admin import credentials, db
+from dotenv import load_dotenv
+from pathlib import Path
+
 # ================== LOAD ENV ==================
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
-# ================== INIT FIREBASE (FIXED) ==================
+# ================== INIT FIREBASE (FINAL FIX) ==================
 
 DB_URL = os.getenv("FIREBASE_DB_URL")
 SERVICE_ACCOUNT_JSON = os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON")
@@ -24,37 +31,39 @@ if not SERVICE_ACCOUNT_JSON:
     raise RuntimeError("Thiếu FIREBASE_SERVICE_ACCOUNT_JSON trong environment")
 
 try:
-    # Trường hợp 1: Chạy Local (Nó là đường dẫn file)
+    # 1. Nếu file tồn tại (Chạy Local)
     if os.path.exists(SERVICE_ACCOUNT_JSON):
-        print(f"🔥 [Firebase] Đang dùng file credential: {SERVICE_ACCOUNT_JSON}")
+        print(f"🔥 [Local] Đang dùng file credential: {SERVICE_ACCOUNT_JSON}")
         cred = credentials.Certificate(SERVICE_ACCOUNT_JSON)
     
-    # Trường hợp 2: Chạy Render (Nó là chuỗi JSON raw)
+    # 2. Nếu không phải file -> Đọc chuỗi JSON (Chạy Render)
     else:
-        print("🔥 [Firebase] Đang đọc credential từ Environment Variable")
+        print("🔥 [Render] Đang đọc credential từ Environment Variable")
         try:
             cred_dict = json.loads(SERVICE_ACCOUNT_JSON)
         except json.JSONDecodeError:
-            # Nếu chuỗi bị dính dấu ngoặc kép thừa thì clean bớt
+            # Clean chuỗi nếu lỡ dư dấu ngoặc kép
             cleaned = SERVICE_ACCOUNT_JSON.strip("'").strip('"')
             cred_dict = json.loads(cleaned)
 
-        # ===> QUAN TRỌNG: FIX LỖI JWT SIGNATURE TẠI ĐÂY <===
-        # Render thường biến ký tự xuống dòng \n thành \\n, ta phải đổi lại
+        # ===> CHÌA KHÓA VÀNG ĐỂ SỬA LỖI JWT <===
+        # Tìm và thay thế ký tự \\n thành \n (xuống dòng thật)
         if "private_key" in cred_dict:
-            cred_dict["private_key"] = cred_dict["private_key"].replace("\\n", "\n")
-            
+            raw_key = cred_dict["private_key"]
+            cred_dict["private_key"] = raw_key.replace("\\n", "\n")
+        
         cred = credentials.Certificate(cred_dict)
 
-except Exception as e:
-    print(f"❌ LỖI KHỞI TẠO FIREBASE: {str(e)}")
-    raise RuntimeError(f"Firebase Init Error: {str(e)}")
+    # Khởi tạo App
+    if not firebase_admin._apps:
+        firebase_admin.initialize_app(cred, {
+            "databaseURL": DB_URL
+        })
 
-# Khởi tạo App (tránh duplicate)
-if not firebase_admin._apps:
-    firebase_admin.initialize_app(cred, {
-        "databaseURL": DB_URL
-    })
+except Exception as e:
+    print(f"❌ FIREBASE ERROR: {str(e)}")
+    # Không raise lỗi để server vẫn chạy, nhưng in ra log để biết
+    pass
 
 # ================== CẤU HÌNH NGƯỠNG CẢNH BÁO ==================
 
