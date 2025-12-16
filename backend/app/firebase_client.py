@@ -2,18 +2,11 @@
 import os
 import json
 from datetime import datetime, timezone
-
 import firebase_admin
 from firebase_admin import credentials, db
 from dotenv import load_dotenv
 from pathlib import Path
 
-import os
-import json
-import firebase_admin
-from firebase_admin import credentials, db
-from dotenv import load_dotenv
-from pathlib import Path
 
 # ================== LOAD ENV ==================
 BASE_DIR = Path(__file__).resolve().parent.parent
