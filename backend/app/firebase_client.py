@@ -33,14 +33,19 @@ try:
         print(f"Dang dung Credential tu FILE: {SERVICE_ACCOUNT_JSON}")
         cred = credentials.Certificate(SERVICE_ACCOUNT_JSON)
     
-    # Trường hợp 2: Chạy Render (Nếu không phải file, coi nó là chuỗi JSON raw)
+    # Trường hợp 2: Chạy Render (Nó là chuỗi JSON raw)
     else:
         print("Dang dung Credential tu ENV VARIABLE (JSON string)")
         cred_dict = json.loads(SERVICE_ACCOUNT_JSON)
+        
+        # ===> QUAN TRỌNG: FIX LỖI JWT SIGNATURE TẠI ĐÂY <===
+        # Render/System thường biến ký tự xuống dòng \n thành \\n, ta phải đổi lại
+        if "private_key" in cred_dict:
+            cred_dict["private_key"] = cred_dict["private_key"].replace("\\n", "\n")
+            
         cred = credentials.Certificate(cred_dict)
 
 except Exception as e:
-    # In lỗi chi tiết để dễ debug
     raise RuntimeError(f"Lỗi khởi tạo Firebase Credential: {str(e)}")
 
 # Chặn khởi tạo Firebase nhiều lần
