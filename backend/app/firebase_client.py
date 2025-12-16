@@ -24,31 +24,29 @@ if not SERVICE_ACCOUNT_JSON:
     raise RuntimeError("Thiếu FIREBASE_SERVICE_ACCOUNT_JSON trong environment")
 
 try:
-    # 1. Nếu là đường dẫn file (Chạy Local)
+    # Trường hợp 1: Chạy Local (Nó là đường dẫn file)
     if os.path.exists(SERVICE_ACCOUNT_JSON):
         print(f"🔥 [Firebase] Đang dùng file credential: {SERVICE_ACCOUNT_JSON}")
         cred = credentials.Certificate(SERVICE_ACCOUNT_JSON)
     
-    # 2. Nếu là chuỗi JSON (Chạy trên Render)
+    # Trường hợp 2: Chạy Render (Nó là chuỗi JSON raw)
     else:
         print("🔥 [Firebase] Đang đọc credential từ Environment Variable")
         try:
             cred_dict = json.loads(SERVICE_ACCOUNT_JSON)
         except json.JSONDecodeError:
-             # Nếu Render bị lỗi format JSON, thử clean string
-            cleaned_json = SERVICE_ACCOUNT_JSON.strip("'").strip('"')
-            cred_dict = json.loads(cleaned_json)
+            # Nếu chuỗi bị dính dấu ngoặc kép thừa thì clean bớt
+            cleaned = SERVICE_ACCOUNT_JSON.strip("'").strip('"')
+            cred_dict = json.loads(cleaned)
 
-        # ===> ĐOẠN QUAN TRỌNG NHẤT: FIX LỖI PRIVATE KEY <===
+        # ===> QUAN TRỌNG: FIX LỖI JWT SIGNATURE TẠI ĐÂY <===
+        # Render thường biến ký tự xuống dòng \n thành \\n, ta phải đổi lại
         if "private_key" in cred_dict:
-            # Thay thế ký tự \\n (hai dấu gạch) thành \n (xuống dòng thật)
-            key = cred_dict["private_key"]
-            cred_dict["private_key"] = key.replace("\\n", "\n")
-        
+            cred_dict["private_key"] = cred_dict["private_key"].replace("\\n", "\n")
+            
         cred = credentials.Certificate(cred_dict)
 
 except Exception as e:
-    # In lỗi ra logs để debug
     print(f"❌ LỖI KHỞI TẠO FIREBASE: {str(e)}")
     raise RuntimeError(f"Firebase Init Error: {str(e)}")
 
