@@ -15,6 +15,8 @@ load_dotenv(BASE_DIR / ".env")
 
 # ================== INIT FIREBASE (SAFE) ==================
 
+# ================== INIT FIREBASE (SAFE) ==================
+
 DB_URL = os.getenv("FIREBASE_DB_URL")
 SERVICE_ACCOUNT_JSON = os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON")
 
@@ -24,14 +26,25 @@ if not DB_URL:
 if not SERVICE_ACCOUNT_JSON:
     raise RuntimeError("Thiếu FIREBASE_SERVICE_ACCOUNT_JSON trong environment")
 
+# --- LOGIC THÔNG MINH (SỬA Ở ĐÂY) ---
 try:
-    cred_dict = json.loads(SERVICE_ACCOUNT_JSON)
-except json.JSONDecodeError:
-    raise RuntimeError("FIREBASE_SERVICE_ACCOUNT_JSON không phải JSON hợp lệ")
+    # Trường hợp 1: Chạy Local (Kiểm tra xem có phải đường dẫn file không)
+    if os.path.exists(SERVICE_ACCOUNT_JSON):
+        print(f"Dang dung Credential tu FILE: {SERVICE_ACCOUNT_JSON}")
+        cred = credentials.Certificate(SERVICE_ACCOUNT_JSON)
+    
+    # Trường hợp 2: Chạy Render (Nếu không phải file, coi nó là chuỗi JSON raw)
+    else:
+        print("Dang dung Credential tu ENV VARIABLE (JSON string)")
+        cred_dict = json.loads(SERVICE_ACCOUNT_JSON)
+        cred = credentials.Certificate(cred_dict)
 
-# Chặn khởi tạo Firebase nhiều lần (rất quan trọng trên Render)
+except Exception as e:
+    # In lỗi chi tiết để dễ debug
+    raise RuntimeError(f"Lỗi khởi tạo Firebase Credential: {str(e)}")
+
+# Chặn khởi tạo Firebase nhiều lần
 if not firebase_admin._apps:
-    cred = credentials.Certificate(cred_dict)
     firebase_admin.initialize_app(cred, {
         "databaseURL": DB_URL
     })
