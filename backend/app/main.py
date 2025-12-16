@@ -98,51 +98,54 @@ def api_get_product(product_id: str):
 
 @app.get("/api/demand_forecast/{product_id}")
 def api_demand_forecast(product_id: str, limit: int = 30, horizon: int = 7):
-    """
-    Dự báo nhu cầu cho 1 sản phẩm:
-    - Lấy lịch sử bán trong 'limit' ngày gần đây
-    - Dùng AI (Moving Average) để dự báo 'horizon' ngày tới
-    - So sánh với tồn kho hiện tại => gợi ý nhập hàng
-    """
+    try:
+        history = get_sales_history(product_id, limit) or []
 
-    history = get_sales_history(product_id, limit)
-    forecast = forecast_demand(history, horizon_days=horizon)
+        forecast = forecast_demand(history, horizon_days=horizon) or []
 
-    product = get_product(product_id)
-    current_stock = None
-    safety_stock = None
-    if product:
-        current_stock = float(product.get("current_stock", 0))
-        safety_stock = float(product.get("safety_stock", 0))
+        product = get_product(product_id)
+        current_stock = float(product.get("current_stock", 0)) if product else 0
+        safety_stock = float(product.get("safety_stock", 0)) if product else 0
 
-    recommendation = None
-    if current_stock is not None and forecast:
-        total_demand = sum(p["expected_qty"] for p in forecast)
-        if current_stock < total_demand + (safety_stock or 0):
-            shortage = total_demand + (safety_stock or 0) - current_stock
-            recommendation = {
-                "should_reorder": True,
-                "suggest_reorder_qty": round(shortage, 2),
-                "reason": "Tồn kho + tồn kho an toàn < tổng nhu cầu dự báo."
-            }
-        else:
-            recommendation = {
-                "should_reorder": False,
-                "reason": "Tồn kho hiện tại đủ đáp ứng nhu cầu dự báo."
-            }
+        recommendation = None
+        if forecast:
+            total_demand = sum(p.get("expected_qty", 0) for p in forecast)
+            if current_stock < total_demand + safety_stock:
+                recommendation = {
+                    "should_reorder": True,
+                    "suggest_reorder_qty": round(
+                        total_demand + safety_stock - current_stock, 2
+                    ),
+                    "reason": "Tồn kho + tồn kho an toàn < tổng nhu cầu dự báo."
+                }
+            else:
+                recommendation = {
+                    "should_reorder": False,
+                    "reason": "Tồn kho hiện tại đủ đáp ứng nhu cầu dự báo."
+                }
+
+        # Chỉ lưu khi forecast hợp lệ
+        if forecast:
+            save_demand_forecast(product_id, forecast)
+
+        return {
+            "status": "ok",
+            "product_id": product_id,
+            "history_len": len(history),
+            "forecast": forecast,
+            "current_stock": current_stock,
+            "safety_stock": safety_stock,
+            "recommendation": recommendation,
+        }
+
+    except Exception as e:
+        print("DEMAND_FORECAST ERROR:", e)
+        return {
+            "status": "error",
+            "message": str(e)
+        }
 
     # Lưu kết quả vào Firebase để dashboard khác có thể đọc
-    save_demand_forecast(product_id, forecast)
-
-    return {
-        "status": "ok",
-        "product_id": product_id,
-        "history_len": len(history),
-        "forecast": forecast,
-        "current_stock": current_stock,
-        "safety_stock": safety_stock,
-        "recommendation": recommendation,
-    }
 class ProductCreate(BaseModel):
     name: str
     current_stock: float = 0
