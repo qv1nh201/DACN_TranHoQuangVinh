@@ -340,13 +340,20 @@ async function loadForecast() {
   // Hiển thị loading
   document.getElementById('recommendation').innerHTML = "⏳ Đang phân tích...";
 
-  try {
+try {
     const res = await fetch(`${API_BASE}/api/demand_forecast/${pid}`);
+
+    // 1. Kiểm tra xem Server có trả về lỗi (404, 500) không trước khi ép kiểu JSON
+    if (!res.ok) {
+        throw new Error(`Lỗi Server: ${res.status}`); 
+    }
+
     const data = await res.json();
 
+    // 2. Kiểm tra logic dữ liệu
     if (data.status !== "ok") {
-      document.getElementById('recommendation').innerText = "❌ Không có dữ liệu hoặc lỗi SP.";
-      return;
+        document.getElementById('recommendation').innerText = "❌ Không có dữ liệu hoặc lỗi SP.";
+        return;
     }
 
     const values = data.forecast.map(p => p.expected_qty);

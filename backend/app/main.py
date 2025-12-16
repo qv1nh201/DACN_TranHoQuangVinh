@@ -12,6 +12,10 @@ from .firebase_client import (
     get_sales_history,
     get_product,
     save_demand_forecast,
+    list_products,
+    save_product,
+    update_product,
+    delete_product
 )
 from .ai_client import forecast_demand
 
@@ -25,7 +29,13 @@ app = FastAPI(
 # Cho phép gọi từ các web dashboard (file html mở trực tiếp)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    # Thay vì ["*"], hãy liệt kê các domain cụ thể:
+    allow_origins=[
+        "http://localhost:3000",                   # Để test ở máy nhà
+        "http://127.0.0.1:3000",                   # Một dạng khác của localhost
+        "https://dacn-tran-ho-quang-vinh.vercel.app", # Domain Vercel CHÍNH XÁC của bạn (bỏ dấu / ở cuối)
+        "https://dacn-tranhoquangvinh.vercel.app"     # (Dự phòng) check lại tên miền trên Vercel của bạn
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -158,12 +168,7 @@ class ProductUpdate(BaseModel):
     safety_stock: Optional[float] = None
 
 
-from .firebase_client import (
-    list_products,
-    save_product,
-    update_product,
-    delete_product
-)
+
 
 # Lấy danh sách sản phẩm
 @app.get("/api/products")
