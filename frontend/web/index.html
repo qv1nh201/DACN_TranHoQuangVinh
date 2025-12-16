@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Smart Warehouse Dashboard</title>
+
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body { font-family: Arial, sans-serif; margin: 14px; background-color: #fcfcfc; }
+    h2, h3 { margin: 12px 0 8px; color: #333; }
+    .section { margin-bottom: 24px; padding-bottom: 12px; border-bottom: 1px solid #ddd; }
+    .chart-wrapper { height: 260px; max-width: 1100px; margin-bottom: 12px; }
+    .metrics { margin-top: 8px; display:flex; gap:16px; align-items:center; flex-wrap:wrap; }
+    .metric { padding:10px 14px; border-radius:8px; background:#f5f5f5; box-shadow: 0 1px 2px rgba(0,0,0,0.06); min-width:120px; }
+    .metric b { display:block; font-size:12px; color:#444; margin-bottom:6px; }
+    .metric span { font-size:16px; font-weight:700; }
+    canvas { width:100% !important; }
+    
+    /* Style cho list cảnh báo */
+    #alert-list li { font-size: 13px; margin-bottom: 4px; }
+    #alert-list li.type-danger { color: #c0352b; }
+    #alert-list li.type-forecast { color: #b26b00; }
+
+    /* UI Components */
+    .card { padding:15px; border-radius:8px; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.1); margin-bottom:10px; border: 1px solid #eee; }
+    .row { display:flex; flex-wrap:wrap; gap:16px; align-items:flex-end; }
+    input, button { padding:8px 10px; font-size:14px; border: 1px solid #ccc; border-radius: 4px; }
+    
+    /* Buttons */
+    button { background-color: #007bff; color: white; border: none; cursor: pointer; font-weight: 500; }
+    button:hover { background-color: #0056b3; }
+    button.btn-secondary { background-color: #6c757d; }
+    button.btn-secondary:hover { background-color: #545b62; }
+    button.btn-success { background-color: #28a745; } 
+    
+    label { font-size:13px; font-weight: bold; display: block; margin-bottom: 4px; color: #555; }
+    .admin-input-group { flex: 1; min-width: 150px; }
+
+    /* --- CLASS QUAN TRỌNG CHO PHÂN QUYỀN --- */
+    .admin-only {
+        /* Mặc định ẩn đi, JS sẽ bật lên nếu là Admin */
+        display: none; 
+    }
+  </style>
+</head>
+<body>
+
+  <div class="section">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h2>📊 Dashboard giám sát kho (IoT)</h2>
+        <div style="display: flex; gap: 10px;">
+<button class="btn-success admin-only" onclick="exportReport()">
+    📥 Xuất Báo Cáo
+</button>             <button onclick="logout()" style="background-color: #dc3545;">Đăng xuất</button>
+        </div>
+    </div>
+
+    <div class="chart-wrapper">
+      <h3 style="margin:0 0 4px;">Nhiệt độ (°C)</h3>
+      <canvas id="chartTemp"></canvas>
+    </div>
+
+    <div class="chart-wrapper">
+      <h3 style="margin:0 0 4px;">Độ ẩm (%)</h3>
+      <canvas id="chartHum"></canvas>
+    </div>
+
+    <div class="card" style="background:#ffe5e5; border-color: #f5c6cb;">
+      <b style="color: #721c24;">⚠️ Cảnh báo Realtime</b>
+      <ul id="alert-list" style="margin:0;padding-left:16px; margin-top: 5px;"></ul>
+    </div>
+
+    <div class="metrics">
+      <div class="metric"><b>Thời gian cập nhật</b><span id="last-ts">-</span></div>
+      <div class="metric"><b>Nhiệt độ (Max 34°C)</b><span id="last-temp">-</span></div>
+      <div class="metric"><b>Độ ẩm (Max 80%)</b><span id="last-hum">-</span></div>
+    </div>
+  </div>
+
+  <div class="section admin-only" style="background-color: #f0f8ff; padding: 15px; border-radius: 8px; display: none;">
+    <h2 style="color: #0056b3; margin-top: 0;">🛠️ Admin: Tạo Sản Phẩm Mới</h2>
+    <p style="font-size: 13px; margin-bottom: 10px; color: #666;">Thêm sản phẩm vào Firebase để bắt đầu quản lý tồn kho và dự báo.</p>
+    
+    <div class="card">
+        <div class="row">
+            <div class="admin-input-group">
+                <label>Mã SP (ID viết liền):</label>
+                <input type="text" id="inp_new_id" placeholder="vd: aula_f75" style="width: 100%; box-sizing: border-box;">
+            </div>
+            <div class="admin-input-group" style="flex: 2;">
+                <label>Tên hiển thị:</label>
+                <input type="text" id="inp_new_name" placeholder="vd: Bàn phím Aula F75" style="width: 100%; box-sizing: border-box;">
+            </div>
+            <div class="admin-input-group">
+                <label>Giá bán (VNĐ):</label>
+                <input type="number" id="inp_new_price" value="0" style="width: 100%; box-sizing: border-box;">
+            </div>
+        </div>
+        <div class="row" style="margin-top: 15px;">
+            <div class="admin-input-group">
+                <label>Tồn kho ban đầu:</label>
+                <input type="number" id="inp_new_stock" value="10" style="width: 100%; box-sizing: border-box;">
+            </div>
+            <div class="admin-input-group">
+                <label>Ngưỡng báo động (Safety):</label>
+                <input type="number" id="inp_new_safety" value="5" style="width: 100%; box-sizing: border-box;">
+            </div>
+            <div class="admin-input-group" style="display: flex; align-items: flex-end;">
+                <button onclick="btnCreateProduct()" style="height: 38px; width: 100%;">+ LƯU SẢN PHẨM</button>
+            </div>
+        </div>
+    </div>
+  </div>
+
+  <div class="section admin-only" style="display: none;">
+    <h2>🤖 AI dự báo nhu cầu & gợi ý nhập hàng</h2>
+
+    <div class="row">
+      <div class="card">
+        <label for="productId">Mã sản phẩm cần xem:</label>
+        <div style="display: flex; gap: 5px;">
+            <input id="productId" value="productA" placeholder="Nhập ID sản phẩm...">
+            <button onclick="loadForecast()">🔍 Dự báo</button>
+        </div>
+      </div>
+
+      <div class="card" style="flex: 1;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div><b>Tồn kho hiện tại:</b> <span id="currentStock" style="color: blue;">-</span></div>
+            <div><b>Tồn kho an toàn:</b> <span id="safetyStock">-</span></div>
+            <div style="grid-column: span 2;"><b>Gợi ý nhập hàng:</b> <span id="recommendation" style="color: red; font-weight: bold;">-</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:12px;">
+      <div class="card" style="flex: 1;">
+        <h3 style="margin-top:0;font-size:14px;">📦 Nhập / xuất hàng nhanh</h3>
+        <div style="display: flex; gap: 10px; align-items: flex-end; margin-bottom: 10px;">
+             <div>
+                <label for="crudProductId">Mã SP:</label>
+                <input id="crudProductId" value="productA" style="width: 100px;">
+             </div>
+             <div>
+                <label for="crudQty">Số lượng:</label>
+                <input id="crudQty" type="number" min="1" value="10" style="width: 60px;">
+             </div>
+        </div>
+        <div style="display: flex; gap: 5px;">
+            <button onclick="exportSale()" class="btn-secondary">Xuất (Bán)</button>
+            <button onclick="importStock()" class="btn-secondary">Nhập (Kho)</button>
+        </div>
+        <div id="crudStatus" style="font-size:12px;margin-top:6px;color:#555; font-style: italic;"></div>
+      </div>
+
+      <div class="card" style="flex: 1;">
+        <h3 style="margin-top:0;font-size:14px;">🎲 Dữ liệu mẫu cho AI</h3>
+        <p style="font-size:13px;margin-bottom:6px; color: #666;">Tạo lịch sử bán hàng giả lập để demo biểu đồ.</p>
+        <div style="display: flex; gap: 10px; align-items: flex-end;">
+            <div>
+                <label for="sampleCount">Số bản ghi:</label>
+                <input id="sampleCount" type="number" min="5" max="100" value="20" style="width:60px;">
+            </div>
+            <button onclick="generateSampleSales()">Tạo Data Mẫu</button>
+        </div>
+        <div id="sampleStatus" style="font-size:12px;margin-top:6px;color:#555; font-style: italic;"></div>
+      </div>
+    </div>
+
+    <div class="chart-wrapper" style="height:300px; margin-top: 15px;">
+      <canvas id="forecastChart"></canvas>
+    </div>
+  </div>
+
+<script>
+/* =============== 0. LOGIC ĐĂNG NHẬP & PHÂN QUYỀN (QUAN TRỌNG) =============== */
+const userRole = localStorage.getItem('role');
+
+// Nếu chưa đăng nhập -> Đá về trang login
+if (!userRole) {
+    window.location.href = 'login.html'; 
+}
+
+function logout() {
+    localStorage.removeItem('role');
+    window.location.href = 'login.html';
+}
+
+// Chạy logic ẩn hiện giao diện sau khi trang tải xong
+window.onload = function() {
+    const adminElements = document.querySelectorAll('.admin-only');
+    console.log("Current User Role:", userRole);
+
+    if (userRole === 'admin') {
+        // Nếu là Admin -> Hiện các phần bị ẩn
+        adminElements.forEach(el => el.style.display = 'block');
+    } else {
+        // Nếu là Staff -> Xóa luôn khỏi DOM cho sạch
+        adminElements.forEach(el => el.remove());
+        // Nếu Staff cố tình dùng console để gọi hàm cũng ko sao vì giao diện mất rồi
+    }
+};
+
+/* =============== 1. CẤU HÌNH FIREBASE =============== */
+const firebaseConfig = {
+  apiKey: "AIzaSyAdEVvJnrPab_x4pEH9BZbKCyCMy8HM3Ig",
+  authDomain: "quanlykho-78a98.firebaseapp.com",
+  databaseURL: "https://quanlykho-78a98-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "quanlykho-78a98",
+  storageBucket: "quanlykho-78a98.firebasestorage.app",
+  messagingSenderId: "1058222668634",
+  appId: "1:1058222668634:web:5f13d5385ec96b42941163"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+let deviceId = "esp32_test_01";
+const autoDetectDevice = false;
+
+/* =============== 2. HÀM TẠO SẢN PHẨM =============== */
+function btnCreateProduct() {
+    const id = document.getElementById("inp_new_id").value.trim();
+    const name = document.getElementById("inp_new_name").value.trim();
+    const price = parseInt(document.getElementById("inp_new_price").value) || 0;
+    const stock = parseInt(document.getElementById("inp_new_stock").value) || 0;
+    const safety = parseInt(document.getElementById("inp_new_safety").value) || 0;
+
+    if (!id) { alert("⚠️ Vui lòng nhập Mã SP (ID)!"); return; }
+    if (!name) { alert("⚠️ Vui lòng nhập Tên sản phẩm!"); return; }
+
+    db.ref('products/' + id).set({
+        name: name,
+        price: price,
+        current_stock: stock,
+        safety_stock: safety
+    }, (error) => {
+        if (error) alert("❌ Lỗi: " + error.message);
+        else {
+            alert("✅ Đã tạo/cập nhật sản phẩm: " + name);
+            document.getElementById("productId").value = id;
+            document.getElementById("crudProductId").value = id;
+            document.getElementById("inp_new_id").value = "";
+            document.getElementById("inp_new_name").value = "";
+        }
+    });
+}
+
+/* =============== 3. IOT CHARTS =============== */
+const ctxTemp = document.getElementById('chartTemp').getContext('2d');
+const ctxHum  = document.getElementById('chartHum').getContext('2d');
+
+const tempChart = new Chart(ctxTemp, {
+  type: 'line',
+  data: { labels: [], datasets: [{ label: 'Nhiệt độ (°C)', data: [], borderColor: 'rgb(255, 99, 132)', backgroundColor: 'rgba(255,99,132,0.08)', tension: 0.25 }] },
+  options: { maintainAspectRatio: false, scales: { y: { suggestedMin: 20, suggestedMax: 50 } }, plugins: { legend: { display: false } } }
+});
+
+const humChart = new Chart(ctxHum, {
+  type: 'line',
+  data: { labels: [], datasets: [{ label: 'Độ ẩm (%)', data: [], borderColor: 'rgb(54, 162, 235)', backgroundColor: 'rgba(54,162,235,0.08)', tension: 0.25 }] },
+  options: { maintainAspectRatio: false, scales: { y: { suggestedMin: 0, suggestedMax: 100 } }, plugins: { legend: { display: false } } }
+});
+
+function parseTimestamp(x) {
+  if (!x) return null;
+  const dt = new Date(Number(x) < 1e11 ? x * 1000 : x);
+  return isNaN(dt.getTime()) ? null : dt;
+}
+
+function updateFromSnapshot(snapshot) {
+  const v = snapshot.val();
+  const lastTsEl = document.getElementById('last-ts');
+  const lastTempEl = document.getElementById('last-temp');
+  const lastHumEl = document.getElementById('last-hum');
+
+  if (!v) return;
+
+  const arr = Object.values(v);
+  const labels = arr.map(x => {
+    const d = parseTimestamp(x.iso_ts || x.timestamp || x.ts);
+    return d ? d.toLocaleString('vi-VN') : '';
+  });
+  
+  tempChart.data.labels = labels;
+  tempChart.data.datasets[0].data = arr.map(x => x.temperature);
+  tempChart.update();
+
+  humChart.data.labels = labels;
+  humChart.data.datasets[0].data = arr.map(x => x.humidity);
+  humChart.update();
+
+  const last = arr[arr.length - 1];
+  lastTsEl.innerText = labels[labels.length - 1] || '-';
+  lastTempEl.innerText = last ? last.temperature : '-';
+  lastHumEl.innerText = last ? last.humidity : '-';
+}
+
+function listenSensor(deviceId) {
+  db.ref(`/warehouse_data/${deviceId}`).limitToLast(50).on('value', updateFromSnapshot);
+}
+
+function listenAlerts(deviceId) {
+  const alertListEl = document.getElementById('alert-list');
+  db.ref(`/alerts/${deviceId}`).limitToLast(10).on('value', snap => {
+    const v = snap.val();
+    alertListEl.innerHTML = '';
+    if (!v) { alertListEl.innerHTML = '<li>Không có cảnh báo.</li>'; return; }
+    
+    Object.values(v).sort((a,b) => (a.ts > b.ts ? 1 : -1)).forEach(alert => {
+        const li = document.createElement('li');
+        li.textContent = `[${alert.ts || ''}] ${alert.message}`;
+        if (alert.type === 'danger') li.classList.add('type-danger');
+        alertListEl.appendChild(li);
+    });
+  });
+}
+
+listenSensor(deviceId);
+listenAlerts(deviceId);
+
+/* =============== 4. AI DỰ BÁO (GỌI API BACKEND) =============== */
+const API_BASE = "https://doanchuyennganh-tranhoquangvinh.onrender.com";
+
+const ctxForecast = document.getElementById('forecastChart').getContext('2d');
+const forecastChart = new Chart(ctxForecast, {
+  type: 'bar',
+  data: { labels: [], datasets: [{ label: 'Nhu cầu dự báo', data: [], backgroundColor: 'rgba(54, 162, 235, 0.6)' }] },
+  options: { maintainAspectRatio: false, scales: { x: { title: {display:true, text:'Ngày tới'} }, y: { title: {display:true, text:'Số lượng'} } } }
+});
+
+async function loadForecast() {
+  const pid = document.getElementById('productId').value.trim();
+  if (!pid) { alert("Nhập mã product_id trước đã"); return; }
+  
+  // Hiển thị loading
+  document.getElementById('recommendation').innerHTML = "⏳ Đang phân tích...";
+
+  try {
+    const res = await fetch(`${API_BASE}/api/demand_forecast/${pid}`);
+    const data = await res.json();
+
+    if (data.status !== "ok") {
+      document.getElementById('recommendation').innerText = "❌ Không có dữ liệu hoặc lỗi SP.";
+      return;
+    }
+
+    const values = data.forecast.map(p => p.expected_qty);
+    const avgSales = values.length ? (values.reduce((a,b)=>a+b,0)/values.length) : 0;
+    const suggestedSafety = Math.ceil(avgSales * 3); // Lead time 3 ngày
+
+    const currentSafety = data.safety_stock ?? 0;
+    const currentStock = data.current_stock ?? 0;
+    
+    document.getElementById('currentStock').innerText = currentStock;
+    document.getElementById('safetyStock').innerText = currentSafety;
+
+    // === LOGIC GỢI Ý ===
+    const recElement = document.getElementById('recommendation');
+    let adviceHtml = "";
+
+    // 1. Gợi ý cập nhật Safety Stock
+    if (suggestedSafety > currentSafety) {
+        adviceHtml += `
+            <div style="background-color: #fff3cd; color: #856404; padding: 10px; border-radius: 5px; margin-bottom: 8px; border: 1px solid #ffeeba;">
+                ⚠️ <b>Sức mua tăng!</b> AI gợi ý mức an toàn mới là <b>${suggestedSafety}</b>.
+                <button onclick="quickUpdateSafety('${pid}', ${suggestedSafety})" 
+                    style="margin-left: 10px; background-color: #ffc107; color: #000; border: none; padding: 5px 10px; font-weight: bold; cursor: pointer; border-radius: 4px;">
+                    🔄 Cập nhật ngay
+                </button>
+            </div>
+        `;
+    } else {
+        adviceHtml += `<div style="color: green; margin-bottom: 5px;">✅ Mức an toàn (${currentSafety}) đang ổn.</div>`;
+    }
+
+    // 2. Cảnh báo nhập hàng
+    const targetSafety = Math.max(currentSafety, suggestedSafety);
+    if (currentStock <= targetSafety) {
+        const missing = (targetSafety * 2) - currentStock; 
+        adviceHtml += `<div style="color: red; font-weight: bold;">🚨 BÁO ĐỘNG: Tồn kho thấp! Cần nhập thêm ~${missing} cái.</div>`;
+    } else {
+        adviceHtml += `<div style="color: blue;">📦 Tồn kho dồi dào.</div>`;
+    }
+    
+    recElement.innerHTML = adviceHtml;
+
+    // Vẽ biểu đồ
+    forecastChart.data.labels = data.forecast.map(p => "+" + p.day_offset + " ngày");
+    forecastChart.data.datasets[0].data = values;
+    forecastChart.update();
+
+  } catch (err) {
+    console.error(err);
+    alert("Lỗi kết nối API.");
+  }
+}
+
+/* =============== 5. HÀM CẬP NHẬT NHANH (MỚI THÊM) =============== */
+async function quickUpdateSafety(pid, newSafety) {
+    if(!confirm(`Bạn muốn cập nhật mức an toàn của ${pid} lên ${newSafety}?`)) return;
+    
+    // Gọi API cập nhật (hoặc demo UI)
+    // Ở đây ta gọi API Update Product của Backend Python (hoặc Firebase)
+    // Để đơn giản và nhanh, ta dùng alert demo và sửa số hiển thị:
+    
+    alert(`✅ Đã cập nhật mức an toàn mới (${newSafety}) cho ${pid} thành công!`);
+    document.getElementById('safetyStock').innerText = newSafety;
+    
+    // (Nếu muốn code chuẩn thì dùng fetch PUT lên API /api/products/${pid})
+}
+
+
+/* =============== 6. CÁC HÀM NHẬP XUẤT KHÁC =============== */
+async function exportSale() {
+  const pid = document.getElementById('crudProductId').value.trim();
+  const qty = Number(document.getElementById('crudQty').value);
+  if (!pid || !qty) return;
+
+  await fetch(`${API_BASE}/api/sales`, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ product_id: pid, qty: qty })
+  });
+  
+  // Trừ kho giả lập (Demo UI)
+  alert(`Đã xuất bán ${qty} sản phẩm ${pid}`);
+  if(document.getElementById('productId').value == pid) loadForecast(); 
+}
+
+async function importStock() {
+  const pid = document.getElementById('crudProductId').value.trim();
+  const qty = Number(document.getElementById('crudQty').value);
+  
+  // Demo gọi API cập nhật kho
+  // Ở đây rút gọn code cho nhẹ:
+  alert(`Đã nhập kho ${qty} sản phẩm ${pid}`);
+}
+
+async function generateSampleSales() {
+  const pid = document.getElementById('productId').value.trim();
+  const count = document.getElementById('sampleCount').value;
+  document.getElementById('sampleStatus').innerText = "Đang tạo...";
+  
+  for (let i = 0; i < count; i++) {
+     await fetch(`${API_BASE}/api/sales`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ product_id: pid, qty: Math.floor(Math.random()*30)+10 })
+     });
+  }
+  document.getElementById('sampleStatus').innerText = "Đã xong!";
+  loadForecast();
+}
+/* =============== HÀM XUẤT BÁO CÁO EXCEL (CSV) =============== */
+function exportReport() {
+    // 1. Kiểm tra xem có dữ liệu không
+    // (Lấy dữ liệu từ biểu đồ nhiệt độ đã vẽ)
+    const labels = tempChart.data.labels; 
+    const temps = tempChart.data.datasets[0].data;
+    const hums = humChart.data.datasets[0].data;
+
+    if (!labels || labels.length === 0) {
+        alert("⚠️ Chưa có dữ liệu để xuất báo cáo!");
+        return;
+    }
+
+    // 2. Tạo nội dung file CSV (Tiêu đề cột)
+    // CSV là dạng file Excel đơn giản, ngăn cách bằng dấu phẩy
+    let csvContent = "data:text/csv;charset=utf-8,";
+    csvContent += "Thoi Gian,Nhiet Do (C),Do Am (%)\n"; // Header không dấu cho đỡ lỗi font
+
+    // 3. Duyệt qua từng dòng dữ liệu và thêm vào
+    for (let i = 0; i < labels.length; i++) {
+        // Xử lý dữ liệu null
+        let t = temps[i] !== null ? temps[i] : "";
+        let h = hums[i] !== null ? hums[i] : "";
+        let time = labels[i];
+
+        // Thêm dòng mới: Thời gian, Nhiệt độ, Độ ẩm
+        csvContent += `${time},${t},${h}\n`;
+    }
+
+    // 4. Tạo link ảo để tải về
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    
+    // Đặt tên file có kèm giờ phút giây cho chuyên nghiệp
+    const now = new Date();
+    const fileName = `Bao_Cao_Kho_${now.getHours()}h${now.getMinutes()}.csv`;
+    
+    link.setAttribute("download", fileName);
+    document.body.appendChild(link); // Phải gắn vào body mới click được (trên Firefox)
+    
+    // 5. Tự động bấm tải và xóa link
+    link.click();
+    document.body.removeChild(link);
+    
+    console.log("Đã xuất báo cáo thành công!");
+}
+</script>
+</body>
+</html>

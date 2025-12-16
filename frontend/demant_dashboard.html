@@ -1,0 +1,101 @@
+<!-- <!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Demand Forecast Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body { font-family: Arial, sans-serif; margin: 16px; }
+    h2 { margin-bottom: 8px; }
+    .row { display:flex; flex-wrap:wrap; gap:16px; align-items:flex-start; }
+    .card { padding:12px 16px; border-radius:8px; background:#f7f7f7; box-shadow:0 1px 2px rgba(0,0,0,.08); }
+    label { font-size:14px; margin-right:6px; }
+    select, button { padding:6px 10px; font-size:14px; }
+    #chart-wrapper { max-width:900px; height:320px; }
+  </style>
+</head>
+<body>
+  <h2>AI Dự báo nhu cầu sản phẩm</h2>
+
+  <div class="row">
+    <div class="card">
+      <label for="productId">Mã sản phẩm:</label>
+      <input id="productId" value="productA">
+      <button onclick="loadForecast()">Dự báo</button>
+    </div>
+
+    <div class="card">
+      <div><b>Tồn kho hiện tại:</b> <span id="currentStock">-</span></div>
+      <div><b>Tồn kho an toàn:</b> <span id="safetyStock">-</span></div>
+      <div><b>Gợi ý nhập hàng:</b> <span id="recommendation">-</span></div>
+    </div>
+  </div>
+
+  <div id="chart-wrapper">
+    <canvas id="forecastChart"></canvas>
+  </div>
+
+<script>
+const API_BASE = "http://127.0.0.1:8000";
+
+const ctx = document.getElementById('forecastChart').getContext('2d');
+const forecastChart = new Chart(ctx, {
+  type: 'bar',
+  data: {
+    labels: [],
+    datasets: [{
+      label: 'Nhu cầu dự báo (qty)',
+      data: [],
+    }]
+  },
+  options: {
+    maintainAspectRatio: false,
+    scales: {
+      x: { title: { display: true, text: 'Ngày (offset)' } },
+      y: { title: { display: true, text: 'Số lượng dự báo' } }
+    }
+  }
+});
+
+async function loadForecast() {
+  const pid = document.getElementById('productId').value.trim();
+  if (!pid) return alert("Nhập mã product_id");
+
+  const res = await fetch(`${API_BASE}/api/demand_forecast/${pid}`);
+  const data = await res.json();
+  console.log(data);
+
+  if (data.status !== "ok") {
+    alert("Không lấy được forecast");
+    return;
+  }
+
+  // cập nhật info
+  document.getElementById('currentStock').innerText = data.current_stock ?? '-';
+  document.getElementById('safetyStock').innerText = data.safety_stock ?? '-';
+
+  if (data.recommendation) {
+    const rec = data.recommendation;
+    let text = rec.reason;
+    if (rec.should_reorder && rec.suggest_reorder_qty) {
+      text += ` (Đề xuất nhập thêm ≈ ${rec.suggest_reorder_qty})`;
+    }
+    document.getElementById('recommendation').innerText = text;
+  } else {
+    document.getElementById('recommendation').innerText = '-';
+  }
+
+  // cập nhật chart
+  const labels = data.forecast.map(p => "Ngày +" + p.day_offset);
+  const values = data.forecast.map(p => p.expected_qty);
+
+  forecastChart.data.labels = labels;
+  forecastChart.data.datasets[0].data = values;
+  forecastChart.update();
+}
+</script>
+</body>
+</html> -->
