@@ -1,21 +1,15 @@
-# app/firebase_client.py
 import os
 import json
-from datetime import datetime, timezone
-
 import firebase_admin
 from firebase_admin import credentials, db
 from dotenv import load_dotenv
 from pathlib import Path
 
 # ================== LOAD ENV ==================
-
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
-# ================== INIT FIREBASE (SAFE) ==================
-
-# ================== INIT FIREBASE (SAFE) ==================
+# ================== INIT FIREBASE (FIXED) ==================
 
 DB_URL = os.getenv("FIREBASE_DB_URL")
 SERVICE_ACCOUNT_JSON = os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON")
@@ -26,29 +20,36 @@ if not DB_URL:
 if not SERVICE_ACCOUNT_JSON:
     raise RuntimeError("Thiếu FIREBASE_SERVICE_ACCOUNT_JSON trong environment")
 
-# --- LOGIC THÔNG MINH (SỬA Ở ĐÂY) ---
 try:
-    # Trường hợp 1: Chạy Local (Kiểm tra xem có phải đường dẫn file không)
+    # 1. Nếu là đường dẫn file (Chạy Local)
     if os.path.exists(SERVICE_ACCOUNT_JSON):
-        print(f"Dang dung Credential tu FILE: {SERVICE_ACCOUNT_JSON}")
+        print(f"🔥 [Firebase] Đang dùng file credential: {SERVICE_ACCOUNT_JSON}")
         cred = credentials.Certificate(SERVICE_ACCOUNT_JSON)
     
-    # Trường hợp 2: Chạy Render (Nó là chuỗi JSON raw)
+    # 2. Nếu là chuỗi JSON (Chạy trên Render)
     else:
-        print("Dang dung Credential tu ENV VARIABLE (JSON string)")
-        cred_dict = json.loads(SERVICE_ACCOUNT_JSON)
-        
-        # ===> QUAN TRỌNG: FIX LỖI JWT SIGNATURE TẠI ĐÂY <===
-        # Render/System thường biến ký tự xuống dòng \n thành \\n, ta phải đổi lại
+        print("🔥 [Firebase] Đang đọc credential từ Environment Variable")
+        try:
+            cred_dict = json.loads(SERVICE_ACCOUNT_JSON)
+        except json.JSONDecodeError:
+             # Nếu Render bị lỗi format JSON, thử clean string
+            cleaned_json = SERVICE_ACCOUNT_JSON.strip("'").strip('"')
+            cred_dict = json.loads(cleaned_json)
+
+        # ===> ĐOẠN QUAN TRỌNG NHẤT: FIX LỖI PRIVATE KEY <===
         if "private_key" in cred_dict:
-            cred_dict["private_key"] = cred_dict["private_key"].replace("\\n", "\n")
-            
+            # Thay thế ký tự \\n (hai dấu gạch) thành \n (xuống dòng thật)
+            key = cred_dict["private_key"]
+            cred_dict["private_key"] = key.replace("\\n", "\n")
+        
         cred = credentials.Certificate(cred_dict)
 
 except Exception as e:
-    raise RuntimeError(f"Lỗi khởi tạo Firebase Credential: {str(e)}")
+    # In lỗi ra logs để debug
+    print(f"❌ LỖI KHỞI TẠO FIREBASE: {str(e)}")
+    raise RuntimeError(f"Firebase Init Error: {str(e)}")
 
-# Chặn khởi tạo Firebase nhiều lần
+# Khởi tạo App (tránh duplicate)
 if not firebase_admin._apps:
     firebase_admin.initialize_app(cred, {
         "databaseURL": DB_URL
