@@ -1,50 +1,50 @@
-# app/firebase_client.py
+from datetime import datetime, timezone
 import os
 import json
-from datetime import datetime, timezone
+import base64  # <--- Thư viện mới để giải mã
 import firebase_admin
 from firebase_admin import credentials, db
 from dotenv import load_dotenv
 from pathlib import Path
 
-
 # ================== LOAD ENV ==================
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
-# ================== INIT FIREBASE (FINAL FIX) ==================
+# ================== INIT FIREBASE (BASE64 VERSION) ==================
 
 DB_URL = os.getenv("FIREBASE_DB_URL")
-SERVICE_ACCOUNT_JSON = os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON")
+SERVICE_ACCOUNT_VAL = os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON")
 
 if not DB_URL:
-    raise RuntimeError("Thiếu FIREBASE_DB_URL trong environment")
-
-if not SERVICE_ACCOUNT_JSON:
-    raise RuntimeError("Thiếu FIREBASE_SERVICE_ACCOUNT_JSON trong environment")
+    raise RuntimeError("Thiếu FIREBASE_DB_URL")
+if not SERVICE_ACCOUNT_VAL:
+    raise RuntimeError("Thiếu FIREBASE_SERVICE_ACCOUNT_JSON")
 
 try:
-    # 1. Nếu file tồn tại (Chạy Local)
-    if os.path.exists(SERVICE_ACCOUNT_JSON):
-        print(f"🔥 [Local] Đang dùng file credential: {SERVICE_ACCOUNT_JSON}")
-        cred = credentials.Certificate(SERVICE_ACCOUNT_JSON)
+    # 1. Nếu là đường dẫn file (Chạy Local trên máy tính)
+    if os.path.exists(SERVICE_ACCOUNT_VAL):
+        print(f"🔥 [Local] Dùng file: {SERVICE_ACCOUNT_VAL}")
+        cred = credentials.Certificate(SERVICE_ACCOUNT_VAL)
     
-    # 2. Nếu không phải file -> Đọc chuỗi JSON (Chạy Render)
+    # 2. Nếu là chuỗi (Chạy trên Render)
     else:
-        print("🔥 [Render] Đang đọc credential từ Environment Variable")
-        try:
-            cred_dict = json.loads(SERVICE_ACCOUNT_JSON)
-        except json.JSONDecodeError:
-            # Clean chuỗi nếu lỡ dư dấu ngoặc kép
-            cleaned = SERVICE_ACCOUNT_JSON.strip("'").strip('"')
-            cred_dict = json.loads(cleaned)
-
-        # ===> CHÌA KHÓA VÀNG ĐỂ SỬA LỖI JWT <===
-        # Tìm và thay thế ký tự \\n thành \n (xuống dòng thật)
-        if "private_key" in cred_dict:
-            raw_key = cred_dict["private_key"]
-            cred_dict["private_key"] = raw_key.replace("\\n", "\n")
+        print("🔥 [Render] Đang xử lý cấu hình...")
         
+        # Thử giải mã Base64 (Cách an toàn nhất)
+        try:
+            # Code này sẽ biến chuỗi Base64 thành JSON gốc
+            decoded_bytes = base64.b64decode(SERVICE_ACCOUNT_VAL)
+            decoded_str = decoded_bytes.decode("utf-8")
+            cred_dict = json.loads(decoded_str)
+            print("✅ Đã giải mã Base64 thành công!")
+        except Exception:
+            # Nếu lỡ bạn quên mã hóa mà dán JSON thường thì nó chạy cái này (Dự phòng)
+            print("⚠️ Không phải Base64, thử đọc JSON thường...")
+            cred_dict = json.loads(SERVICE_ACCOUNT_VAL)
+            if "private_key" in cred_dict:
+                 cred_dict["private_key"] = cred_dict["private_key"].replace("\\n", "\n")
+
         cred = credentials.Certificate(cred_dict)
 
     # Khởi tạo App
@@ -52,11 +52,14 @@ try:
         firebase_admin.initialize_app(cred, {
             "databaseURL": DB_URL
         })
+        print("✅ Firebase kết nối thành công!")
 
 except Exception as e:
     print(f"❌ FIREBASE ERROR: {str(e)}")
-    # Không raise lỗi để server vẫn chạy, nhưng in ra log để biết
-    pass
+    pass # Để server không bị sập
+
+# ================== GIỮ NGUYÊN CÁC HÀM DƯỚI ĐÂY ==================
+# (Copy lại các hàm save_sensor, save_sale, get_sales_history... dán vào đây)
 
 # ================== CẤU HÌNH NGƯỠNG CẢNH BÁO ==================
 
