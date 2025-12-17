@@ -10,36 +10,40 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
 # ==============================================================================
-# CẤU HÌNH TRỰC TIẾP (ĐÃ ĐIỀN SẴN DỮ LIỆU CỦA BẠN)
+# CẤU HÌNH FIXED CỨNG (ĐÃ XỬ LÝ FORMAT KEY)
 # ==============================================================================
 
-# 1. Cấu hình thông tin xác thực (Chuyển từ JSON sang Python Dict để tránh lỗi)
+# Lưu ý: Mình dùng r""" (raw string) để đảm bảo Python không tự sửa ký tự
+PRIVATE_KEY_RAW = r"""-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC3oodIGDUk0uHz\nnofRhe8BYJRcqFHCFaObr/zndE1+ylfF4nJAGal9AOaneJ8AkfoPpDusq1T9xvWy\nl50/MmEdJHYJkEyTvC574s0kUvE3i8rTObUH+2omyg6YO2r+23croAYAuZ5nXl0G\ncDJSetMiErqK5Uza2A22Zy5tbpHolTuFOCEQpOixGIz1N80khqGgzSiyfEgB9ECc\nSx1aqQtyssHeIUcdQCS4JKYDenNXIKnaU2aR5+88fecRnjkV1U0MSAL7wsFxstDH\nO5OR72F0m6xPlZjEaI3ZsVbt6jTOVu/esg5REZUG3+m4Mlp7OpVZIIRiNwqK7x9H\nZy2VYpLzAgMBAAECggEAN9KqAkINobiTpH3cNtbarZYA89vdIr12Q2Uv4eJqjnEP\nVqH8bjz+13e3JlDWMROvKyMXWumoiA778MMDM8tqVzQWx9h8Vuq9TL7I8tJd7q9J\nxIVF4XvNrKX+4sspPvlTVEksmfrTSwQWDld8DLO2zCRaXc/P2bUVEg5ywCR9KXD0\nPLtfdpN9wgL8zfayLJzj6tiZWOBwVTk4tmDt65AxWwc2xsh2S6E/VrAiMB63fsJK\nSbMb9CZpf4tzEAjWhp+DhxAmlubIGa+IZ1J4ns698e7fWvfbcuu7gIgdBy6PUXpw\nxtag7w0M98YgkqgXAbGF5Nwt/0MMESOpPHKDeyFtKQKBgQDh2irp429XFr+2se4n\nNrqd8/kWQCw+DSPu7iiqEzxhEO+YQhxc5EmvP3AIg6cwm7iahLpehVpiHeXhoTYg\nG0EVvo+NEDYt/PpqUx8ao/0Jpc2Vl6UkxRaVwLpjEFRPgF4uf+RqZqrXruxomr1f\nQe8fECdKFDxluxq2bnUWEKAtqQKBgQDQJbU5XJmRZ1l2aRKPL+10nys6ztwPddnF\nWk6fwjc0fRYnyo7einZFDeejDbhljiigVOEnxZd4KXwVnFqs2StDbszQD4yqeg0f\nybl9vPcK83LVDTvEThMBkiMAPHKv8gCdu/jP5e4HRu/UzvzTxxkpENNPUjmxiYNC\nH4oKpc3FOwKBgQC4gUVbi0xzBgeaVaNr757m2N/dWJGMI6n+UBtyTYKe/Xnuldub\n23eCrj11BzB3Wk+mE9Y4z5I145zgBZY1Bm7WN7YIFH1ednOQltUrK1rVHdlkYt0r\nu8KmliruMPHffMv0CtDsR3E8AA/rqLYZ8sBJTSX7s6pfpUm+TWBjpTNl+QKBgQC6\nAdiPaEb7/4WdIYyqVMQ4wbzaEt3pGwH/MRKuBdtblqTj7kn6aXYDg8eKmMo+Runb\nTb7f0d3oTfpLPaxyZqgY3L0++YZVGjj8PUL8MI/8Q05NQkQ0yyiE8NlCbsJ2pScT\nzlUtRGaQLj5IyKh7gKLlZdnQOsS/+QlJX/H2TfEy3QKBgEIg+rJ/0eLyCONZDUbU\nBs6/nMXdV//l4mWFP7GbjQcDtjL5c/OgoA8uHI+RLTbZe1jROnbhhIQZSS8AgDAq\nIllTstItGJ6INTVipZp2o3ipUsykjr8AcLGBU7Ssnh8YGeNend6Kes02WkTE79kt\nPD5m3eot1H7CjKbTLAHo+bko\n-----END PRIVATE KEY-----\n"""
+
+# Cấu hình Dict (Đã điền thông tin từ file của bạn)
 MY_CREDENTIAL_DICT = {
   "type": "service_account",
   "project_id": "quanlykho-78a98",
   "private_key_id": "15827da1a105a3a169a99c3e50b5ff0ecff13929",
-  # Private key được dán trực tiếp, code sẽ tự xử lý xuống dòng
-  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC3oodIGDUk0uHz\nnofRhe8BYJRcqFHCFaObr/zndE1+ylfF4nJAGal9AOaneJ8AkfoPpDusq1T9xvWy\nl50/MmEdJHYJkEyTvC574s0kUvE3i8rTObUH+2omyg6YO2r+23croAYAuZ5nXl0G\ncDJSetMiErqK5Uza2A22Zy5tbpHolTuFOCEQpOixGIz1N80khqGgzSiyfEgB9ECc\nSx1aqQtyssHeIUcdQCS4JKYDenNXIKnaU2aR5+88fecRnjkV1U0MSAL7wsFxstDH\nO5OR72F0m6xPlZjEaI3ZsVbt6jTOVu/esg5REZUG3+m4Mlp7OpVZIIRiNwqK7x9H\nZy2VYpLzAgMBAAECggEAN9KqAkINobiTpH3cNtbarZYA89vdIr12Q2Uv4eJqjnEP\nVqH8bjz+13e3JlDWMROvKyMXWumoiA778MMDM8tqVzQWx9h8Vuq9TL7I8tJd7q9J\nxIVF4XvNrKX+4sspPvlTVEksmfrTSwQWDld8DLO2zCRaXc/P2bUVEg5ywCR9KXD0\nPLtfdpN9wgL8zfayLJzj6tiZWOBwVTk4tmDt65AxWwc2xsh2S6E/VrAiMB63fsJK\nSbMb9CZpf4tzEAjWhp+DhxAmlubIGa+IZ1J4ns698e7fWvfbcuu7gIgdBy6PUXpw\nxtag7w0M98YgkqgXAbGF5Nwt/0MMESOpPHKDeyFtKQKBgQDh2irp429XFr+2se4n\nNrqd8/kWQCw+DSPu7iiqEzxhEO+YQhxc5EmvP3AIg6cwm7iahLpehVpiHeXhoTYg\nG0EVvo+NEDYt/PpqUx8ao/0Jpc2Vl6UkxRaVwLpjEFRPgF4uf+RqZqrXruxomr1f\nQe8fECdKFDxluxq2bnUWEKAtqQKBgQDQJbU5XJmRZ1l2aRKPL+10nys6ztwPddnF\nWk6fwjc0fRYnyo7einZFDeejDbhljiigVOEnxZd4KXwVnFqs2StDbszQD4yqeg0f\nybl9vPcK83LVDTvEThMBkiMAPHKv8gCdu/jP5e4HRu/UzvzTxxkpENNPUjmxiYNC\nH4oKpc3FOwKBgQC4gUVbi0xzBgeaVaNr757m2N/dWJGMI6n+UBtyTYKe/Xnuldub\n23eCrj11BzB3Wk+mE9Y4z5I145zgBZY1Bm7WN7YIFH1ednOQltUrK1rVHdlkYt0r\nu8KmliruMPHffMv0CtDsR3E8AA/rqLYZ8sBJTSX7s6pfpUm+TWBjpTNl+QKBgQC6\nAdiPaEb7/4WdIYyqVMQ4wbzaEt3pGwH/MRKuBdtblqTj7kn6aXYDg8eKmMo+Runb\nTb7f0d3oTfpLPaxyZqgY3L0++YZVGjj8PUL8MI/8Q05NQkQ0yyiE8NlCbsJ2pScT\nzlUtRGaQLj5IyKh7gKLlZdnQOsS/+QlJX/H2TfEy3QKBgEIg+rJ/0eLyCONZDUbU\nBs6/nMXdV//l4mWFP7GbjQcDtjL5c/OgoA8uHI+RLTbZe1jROnbhhIQZSS8AgDAq\nIllTstItGJ6INTVipZp2o3ipUsykjr8AcLGBU7Ssnh8YGeNend6Kes02WkTE79kt\nPD5m3eot1H7CjKbTLAHo+bko\n-----END PRIVATE KEY-----\n",
+  "private_key": PRIVATE_KEY_RAW, # Sẽ được xử lý replace bên dưới
   "client_email": "firebase-adminsdk-fbsvc@quanlykho-78a98.iam.gserviceaccount.com",
   "client_id": "118176706404501055250",
   "auth_uri": "https://accounts.google.com/o/oauth2/auth",
   "token_uri": "https://oauth2.googleapis.com/token",
   "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40quanlykho-78a98.iam.gserviceaccount.com",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40quanlykho-78a98.iam.gserviceaccount.com"
 }
 
-# 2. Link Realtime Database (Đã tự điền đúng theo Project ID của bạn)
+# Link Database
 HARDCODED_DB_URL = "https://quanlykho-78a98-default-rtdb.asia-southeast1.firebasedatabase.app/"
 
 # ================== INIT FIREBASE ==================
 
 try:
     if not firebase_admin._apps:
-        print("🔥 [Direct] Đang khởi tạo Firebase từ cấu hình cứng...")
+        print("🔥 [Direct] Đang khởi tạo Firebase...")
         
-        # QUAN TRỌNG: Fix lỗi xuống dòng trong Private Key
+        # ===> ĐÂY LÀ CHỖ QUAN TRỌNG NHẤT <===
+        # Thay thế chuỗi "\n" (2 ký tự) thành ký tự xuống dòng thật sự
         if "private_key" in MY_CREDENTIAL_DICT:
-             MY_CREDENTIAL_DICT["private_key"] = MY_CREDENTIAL_DICT["private_key"].replace("\\n", "\n")
+             # Dùng r"\n" để tìm đúng ký tự gạch chéo+n
+             MY_CREDENTIAL_DICT["private_key"] = MY_CREDENTIAL_DICT["private_key"].replace(r"\n", "\n")
 
         cred = credentials.Certificate(MY_CREDENTIAL_DICT)
         
