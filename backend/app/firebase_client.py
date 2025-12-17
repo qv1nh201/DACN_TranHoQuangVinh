@@ -9,45 +9,45 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
 # ==============================================================================
-# FIREBASE CONFIGURATION - Dùng private key ĐÚNG FORMAT từ JSON gốc
+# FIREBASE CONFIGURATION - KEY MỚI (Generated: Dec 17, 2025)
 # ==============================================================================
 
-# Private key từ firebase_key.json - GIỮ NGUYÊN FORMAT VỚI \n
+# Private key MỚI từ Firebase Console
 FIREBASE_PRIVATE_KEY = """-----BEGIN PRIVATE KEY-----
-MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC3oodIGDUk0uHz
-nofRhe8BYJRcqFHCFaObr/zndE1+ylfF4nJAGal9AOaneJ8AkfoPpDusq1T9xvWy
-l50/MmEdJHYJkEyTvC574s0kUvE3i8rTObUH+2omyg6YO2r+23croAYAuZ5nXl0G
-cDJSetMiErqK5Uza2A22Zy5tbpHolTuFOCEQpOixGIz1N80khqGgzSiyfEgB9ECc
-Sx1aqQtyssHeIUcdQCS4JKYDenNXIKnaU2aR5+88fecRnjkV1U0MSAL7wsFxstDH
-O5OR72F0m6xPlZjEaI3ZsVbt6jTOVu/esg5REZUG3+m4Mlp7OpVZIIRiNwqK7x9H
-Zy2VYpLzAgMBAAECggEAN9KqAkINobiTpH3cNtbarZYA89vdIr12Q2Uv4eJqjnEP
-VqH8bjz+13e3JlDWMROvKyMXWumoiA778MMDM8tqVzQWx9h8Vuq9TL7I8tJd7q9J
-xIVF4XvNrKX+4sspPvlTVEksmfrTSwQWDld8DLO2zCRaXc/P2bUVEg5ywCR9KXD0
-PLtfdpN9wgL8zfayLJzj6tiZWOBwVTk4tmDt65AxWwc2xsh2S6E/VrAiMB63fsJK
-SbMb9CZpf4tzEAjWhp+DhxAmlubIGa+IZ1J4ns698e7fWvfbcuu7gIgdBy6PUXpw
-xtag7w0M98YgkqgXAbGF5Nwt/0MMESOpPHKDeyFtKQKBgQDh2irp429XFr+2se4n
-Nrqd8/kWQCw+DSPu7iiqEzxhEO+YQhxc5EmvP3AIg6cwm7iahLpehVpiHeXhoTYg
-G0EVvo+NEDYt/PpqUx8ao/0Jpc2Vl6UkxRaVwLpjEFRPgF4uf+RqZqrXruxomr1f
-Qe8fECdKFDxluxq2bnUWEKAtqQKBgQDQJbU5XJmRZ1l2aRKPL+10nys6ztwPddnF
-Wk6fwjc0fRYnyo7einZFDeejDbhljiigVOEnxZd4KXwVnFqs2StDbszQD4yqeg0f
-ybl9vPcK83LVDTvEThMBkiMAPHKv8gCdu/jP5e4HRu/UzvzTxxkpENNPUjmxiYNC
-H4oKpc3FOwKBgQC4gUVbi0xzBgeaVaNr757m2N/dWJGMI6n+UBtyTYKe/Xnuldub
-23eCrj11BzB3Wk+mE9Y4z5I145zgBZY1Bm7WN7YIFH1ednOQltUrK1rVHdlkYt0r
-u8KmliruMPHffMv0CtDsR3E8AA/rqLYZ8sBJTSX7s6pfpUm+TWBjpTNl+QKBgQC6
-AdiPaEb7/4WdIYyqVMQ4wbzaEt3pGwH/MRKuBdtblqTj7kn6aXYDg8eKmMo+Runb
-Tb7f0d3oTfpLPaxyZqgY3L0++YZVGjj8PUL8MI/8Q05NQkQ0yyiE8NlCbsJ2pScT
-zlUtRGaQLj5IyKh7gKLlZdnQOsS/+QlJX/H2TfEy3QKBgEIg+rJ/0eLyCONZDUbU
-Bs6/nMXdV//l4mWFP7GbjQcDtjL5c/OgoA8uHI+RLTbZe1jROnbhhIQZSS8AgDAq
-IllTstItGJ6INTVipZp2o3ipUsykjr8AcLGBU7Ssnh8YGeNend6Kes02WkTE79kt
-PD5m3eot1H7CjKbTLAHo+bko
+MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCjSXyasvCtLtTy
+8LtcIYG4mr2AtUv5JH+xqOQUMOO3Wdq7jvoqJrkjEFlbSVaEKxxQuky6uMl2UcEQ
+ZanRFBxM6dXQE1a5SS0rFRTp0EVKBwUr2uSiaLzb/tg+U2MsKbuMuxhDCaTrtTLi
+IgZdu+T9StkiDirloB7PWmhfq444XxKwXSlIwBZ3qrRskte8HOQtJVt+9FES9AMO
+ygqF3h/h3IuNkZi6ZykFupiwXNyA8/narokY/BuiG6Rr9ovCqiQACta7zOBNqQBT
+3fgKaHVuI8Gr2N4TcjAJ/iYJtxfdCLvkVaVuFquoRiADS0QATOWwaSFpODKkDnhe
+Z4RHmZhRAgMBAAECggEAGwaLsBMT0KYiqr77U6lcDhDWcpoPJAJNfDsm3Myms+8U
+S9zDPPzBwbLwBzLhNejou9fJ4VG6TnIDkVIyRB+e+3/sWo8I2IvrBOltV7GX9kOp
+MHP/SX4qXAMXCWHF1UZm+0jwIBBVkomgDVtyUEtMADxGKePMZ8sTrmAZTFRZqqyV
+9U9QpgWKTip3t0yYf7lSFr//K3luARhpi2HDZTkdBvW0yg6z3Za4pK9RA64HAP7P
+AZiDhN5CxvVd4FTJ3/T3S2R7X+dMIzfb41VQ8mg0lHMAgbF/hpA69mXoE0xXw0HK
+VbfIa8Gb0CoVX6S2MD2wlf/V4eIkXL1I7BTNxCrdHQKBgQDTLuvyUnQY7UButgVJ
+TJ6yCCD5oCqAaiWFmPPLV5JoGHik0/ilYfZyQz+W/1pXu+OwkxZsUwKvT8KWAPJ6
+VnGukpyotVp+eC7NNDLhNlnnRtGXyJ8/P9CjC6Gdfp6GnZnlav3wL/qLMNK7E2MS
+HFxftuKur8btOl1rSP0Xi6QEdwKBgQDF8Hp9qajybnoWeCsM8/Is82HYGaKUNHGg
+7/0HS0QKq/FG86r7yan88IDd44ngt/47QEoJn7joCG0Y84IjxEeUvM5J3YG+1U/t
+hRO0raeJiTRDH88IfKS/gi0VjfEa5fLS/h54598CqfWWmZ6ofIvkjR2pmnQrE7Kp
++XR7fErjdwKBgQCkfCZwTkJ468nEsWc6qT/twKEWbObNsF9bSD+TALla9Lx6/VLs
+VXnjk3di/675KLH2ZQoRAzLTI1eXCFPUb6IJ682zJdW/LZKeZ+q9OV0a4zD6fNt0
+Ixs48yVFC0sj5HrqksQJIQWPBk8MQNRoVcipEERM9UIGofADUQ04Gp58jwKBgC0y
+xXWuaSK6sWwyEnqJtdIn3T7QU7yN4SiDxH6G5Emfi5/NAk0udn+Il5STYaeLvCTh
+gEaET1/ElMzuxdfO+R1wo5ZgW0EtSmwNSDuor6oLR4DQYaEpfSEx44OZfuXKflFJ
+r8GiCN1929OAzqbgkb0lsBFLcJ1piRGhIcUU07DvAoGAZdJOqvyVWVTEZWKzmBIP
+e78VSxxRgAiT6E1/TM+ys4iZBBgdQcVL/Zn3mCdS2dSVXU1R+Cq0IwrK4qBRkdf/
+huUwpPVRiaxbgLNyDszzGKaC03PF4YP3gpBCxBosMaCGrvOd5lPJvzsqs/0x9CeV
+vEIizNp5ecgyEuxzYawapjs=
 -----END PRIVATE KEY-----
 """
 
-# Cấu hình Firebase Dict
+# Cấu hình Firebase Dict với KEY MỚI
 MY_CREDENTIAL_DICT = {
     "type": "service_account",
     "project_id": "quanlykho-78a98",
-    "private_key_id": "15827da1a105a3a169a99c3e50b5ff0ecff13929",
+    "private_key_id": "b2eaec624f6b0a158331b4d1d53bb661edf15f45",  # KEY MỚI
     "private_key": FIREBASE_PRIVATE_KEY,
     "client_email": "firebase-adminsdk-fbsvc@quanlykho-78a98.iam.gserviceaccount.com",
     "client_id": "118176706404501055250",
