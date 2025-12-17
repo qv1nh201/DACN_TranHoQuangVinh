@@ -138,19 +138,44 @@ def get_product(pid):
         return None
 
 def save_product(pid, data):
-    if pid and data: 
+    if not pid or not data:
+        return None
+    try:
         db.reference(f"products/{pid}").set(data)
+        print(f"💾 save_product({pid}): Saved successfully")
         return data
+    except Exception as e:
+        print(f"❌ Error saving product {pid}: {e}")
+        return None
 
 def update_product(pid, data):
-    if pid and data: 
+    if not pid or not data:
+        return None
+    try:
+        # Update data vào Firebase
         db.reference(f"products/{pid}").update(data)
-        return True
+        # Lấy lại data mới nhất sau khi update
+        updated_data = db.reference(f"products/{pid}").get()
+        print(f"✏️ update_product({pid}): {data} → Updated successfully")
+        return updated_data
+    except Exception as e:
+        print(f"❌ Error updating product {pid}: {e}")
+        return None
 
 def delete_product(pid):
-    if pid: 
+    if not pid:
+        return False
+    try:
+        # Kiểm tra product có tồn tại không
+        exists = db.reference(f"products/{pid}").get()
+        if not exists:
+            return False
         db.reference(f"products/{pid}").delete()
+        print(f"🗑️ delete_product({pid}): Deleted successfully")
         return True
+    except Exception as e:
+        print(f"❌ Error deleting product {pid}: {e}")
+        return False
 
 def list_products():
     try:
