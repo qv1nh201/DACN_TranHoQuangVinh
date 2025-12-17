@@ -1,65 +1,68 @@
-from datetime import datetime, timezone
 import os
 import json
-import base64  # <--- Thư viện mới để giải mã
 import firebase_admin
 from firebase_admin import credentials, db
-from dotenv import load_dotenv
+from datetime import datetime, timezone
 from pathlib import Path
+from dotenv import load_dotenv
 
-# ================== LOAD ENV ==================
+# ================== LOAD ENV (Dự phòng) ==================
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
-# ================== INIT FIREBASE (BASE64 VERSION) ==================
+# ==============================================================================
+# PHẦN CẤU HÌNH QUAN TRỌNG NHẤT (SỬA Ở ĐÂY)
+# ==============================================================================
 
-DB_URL = os.getenv("FIREBASE_DB_URL")
-SERVICE_ACCOUNT_VAL = os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON")
+# 1. Dán nội dung file 'quanlykho-xxx.json' của bạn vào giữa 3 dấu nháy kép bên dưới
+# (Xóa dòng "PASTE_NOI_DUNG_FILE_JSON_VAO_DAY" và dán đè lên)
+RAW_KEY_JSON = """
+PASTE_NOI_DUNG_FILE_JSON_VAO_DAY
+"""
 
-if not DB_URL:
-    raise RuntimeError("Thiếu FIREBASE_DB_URL")
-if not SERVICE_ACCOUNT_VAL:
-    raise RuntimeError("Thiếu FIREBASE_SERVICE_ACCOUNT_JSON")
+# 2. Điền link Realtime Database của bạn vào đây
+# (Ví dụ: "https://quanlykho-78a98-default-rtdb.asia-southeast1.firebasedatabase.app/")
+HARDCODED_DB_URL = "https://YOUR_PROJECT_ID-default-rtdb.asia-southeast1.firebasedatabase.app/"
+
+# ================== INIT FIREBASE ==================
 
 try:
-    # 1. Nếu là đường dẫn file (Chạy Local trên máy tính)
-    if os.path.exists(SERVICE_ACCOUNT_VAL):
-        print(f"🔥 [Local] Dùng file: {SERVICE_ACCOUNT_VAL}")
-        cred = credentials.Certificate(SERVICE_ACCOUNT_VAL)
-    
-    # 2. Nếu là chuỗi (Chạy trên Render)
-    else:
-        print("🔥 [Render] Đang xử lý cấu hình...")
-        
-        # Thử giải mã Base64 (Cách an toàn nhất)
-        try:
-            # Code này sẽ biến chuỗi Base64 thành JSON gốc
-            decoded_bytes = base64.b64decode(SERVICE_ACCOUNT_VAL)
-            decoded_str = decoded_bytes.decode("utf-8")
-            cred_dict = json.loads(decoded_str)
-            print("✅ Đã giải mã Base64 thành công!")
-        except Exception:
-            # Nếu lỡ bạn quên mã hóa mà dán JSON thường thì nó chạy cái này (Dự phòng)
-            print("⚠️ Không phải Base64, thử đọc JSON thường...")
-            cred_dict = json.loads(SERVICE_ACCOUNT_VAL)
-            if "private_key" in cred_dict:
-                 cred_dict["private_key"] = cred_dict["private_key"].replace("\\n", "\n")
-
-        cred = credentials.Certificate(cred_dict)
-
-    # Khởi tạo App
     if not firebase_admin._apps:
-        firebase_admin.initialize_app(cred, {
-            "databaseURL": DB_URL
-        })
-        print("✅ Firebase kết nối thành công!")
+        cred = None
+        
+        # Kiểm tra xem người dùng đã dán key chưa
+        if "PASTE_NOI_DUNG" not in RAW_KEY_JSON and len(RAW_KEY_JSON.strip()) > 10:
+            print("🔥 [Direct] Đang dùng chìa khóa dán trực tiếp trong code...")
+            cred_dict = json.loads(RAW_KEY_JSON)
+            cred = credentials.Certificate(cred_dict)
+        else:
+            # Nếu chưa dán, thử tìm file local (Dự phòng cho máy local)
+            print("⚠️ Chưa dán key vào RAW_KEY_JSON, đang tìm file local...")
+            local_key_path = Path(__file__).parent / "firebase_key.json"
+            env_key_path = os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON")
+            
+            if local_key_path.exists():
+                cred = credentials.Certificate(str(local_key_path))
+            elif env_key_path and os.path.exists(env_key_path):
+                cred = credentials.Certificate(env_key_path)
+
+        if cred:
+            # Ưu tiên dùng URL cứng, nếu không có thì lấy từ env
+            final_db_url = HARDCODED_DB_URL if "YOUR_PROJECT_ID" not in HARDCODED_DB_URL else os.getenv("FIREBASE_DB_URL")
+            
+            if not final_db_url:
+                raise ValueError("Chưa cấu hình FIREBASE_DB_URL!")
+
+            firebase_admin.initialize_app(cred, {
+                "databaseURL": final_db_url
+            })
+            print("✅ Firebase kết nối thành công!")
+        else:
+            print("❌ LỖI: Không tìm thấy chứng chỉ Firebase nào (Chưa dán Key hoặc thiếu file)!")
 
 except Exception as e:
-    print(f"❌ FIREBASE ERROR: {str(e)}")
-    pass # Để server không bị sập
-
-# ================== GIỮ NGUYÊN CÁC HÀM DƯỚI ĐÂY ==================
-# (Copy lại các hàm save_sensor, save_sale, get_sales_history... dán vào đây)
+    print(f"❌ FIREBASE INIT ERROR: {str(e)}")
+    pass
 
 # ================== CẤU HÌNH NGƯỠNG CẢNH BÁO ==================
 
@@ -129,7 +132,8 @@ def get_sales_history(product_id: str, limit: int = 30):
         return []
 
     items = list(snap.items())
-    items.sort(key=lambda x: x[0])  # sort theo pushId
+    # Sort theo pushId (thời gian thêm vào)
+    items.sort(key=lambda x: x[0])  
     values = [v for _, v in items]
 
     if limit and len(values) > limit:
