@@ -74,10 +74,14 @@ try:
             "databaseURL": HARDCODED_DB_URL
         })
         print("✅ Firebase kết nối thành công! (Key hợp lệ)")
+    else:
+        print("✅ Firebase đã được khởi tạo trước đó")
 
 except Exception as e:
     print(f"❌ FIREBASE INIT ERROR: {str(e)}")
-    pass
+    import traceback
+    traceback.print_exc()
+    raise e  # Throw lại lỗi thay vì pass để debug dễ hơn
 
 # ================== CẤU HÌNH NGƯỠNG CẢNH BÁO ==================
 
@@ -124,19 +128,39 @@ def get_sales_history(product_id: str, limit: int = 30):
 # ================== 3. PRODUCT ==================
 
 def get_product(pid):
-    return db.reference(f"products/{pid}").get() if pid else None
+    if not pid:
+        return None
+    try:
+        result = db.reference(f"products/{pid}").get()
+        print(f"📦 get_product({pid}): {result}")
+        return result
+    except Exception as e:
+        print(f"❌ Error getting product {pid}: {e}")
+        return None
 
 def save_product(pid, data):
-    if pid and data: db.reference(f"products/{pid}").set(data); return data
+    if pid and data: 
+        db.reference(f"products/{pid}").set(data)
+        return data
 
 def update_product(pid, data):
-    if pid and data: db.reference(f"products/{pid}").update(data); return True
+    if pid and data: 
+        db.reference(f"products/{pid}").update(data)
+        return True
 
 def delete_product(pid):
-    if pid: db.reference(f"products/{pid}").delete(); return True
+    if pid: 
+        db.reference(f"products/{pid}").delete()
+        return True
 
 def list_products():
-    return db.reference("products").get() or {}
+    try:
+        result = db.reference("products").get() or {}
+        print(f"📦 list_products: Found {len(result)} products")
+        return result
+    except Exception as e:
+        print(f"❌ Error listing products: {e}")
+        return {}
 
 # ================== 4. DEMAND FORECAST ==================
 
