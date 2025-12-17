@@ -222,8 +222,8 @@ const db = firebase.database();
 let deviceId = "esp32_test_01";
 const autoDetectDevice = false;
 
-/* =============== 2. HÀM TẠO SẢN PHẨM =============== */
-function btnCreateProduct() {
+/* =============== 2. HÀM TẠO SẢN PHẨM - GỌI API BACKEND =============== */
+async function btnCreateProduct() {
     const id = document.getElementById("inp_new_id").value.trim();
     const name = document.getElementById("inp_new_name").value.trim();
     const price = parseInt(document.getElementById("inp_new_price").value) || 0;
@@ -233,21 +233,33 @@ function btnCreateProduct() {
     if (!id) { alert("⚠️ Vui lòng nhập Mã SP (ID)!"); return; }
     if (!name) { alert("⚠️ Vui lòng nhập Tên sản phẩm!"); return; }
 
-    db.ref('products/' + id).set({
-        name: name,
-        price: price,
-        current_stock: stock,
-        safety_stock: safety
-    }, (error) => {
-        if (error) alert("❌ Lỗi: " + error.message);
-        else {
+    try {
+        // Gọi API backend thay vì ghi trực tiếp Firebase
+        const response = await fetch(`${API_BASE}/api/products/${id}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                name: name,
+                current_stock: stock,
+                safety_stock: safety
+            })
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
             alert("✅ Đã tạo/cập nhật sản phẩm: " + name);
             document.getElementById("productId").value = id;
             document.getElementById("crudProductId").value = id;
             document.getElementById("inp_new_id").value = "";
             document.getElementById("inp_new_name").value = "";
+            loadForecast(); // Reload để cập nhật UI
+        } else {
+            alert("❌ Lỗi: " + (result.message || 'Unknown error'));
         }
-    });
+    } catch (error) {
+        alert("❌ Lỗi kết nối: " + error.message);
+    }
 }
 
 /* =============== 3. IOT CHARTS =============== */
@@ -442,9 +454,32 @@ async function importStock() {
   const pid = document.getElementById('crudProductId').value.trim();
   const qty = Number(document.getElementById('crudQty').value);
   
-  // Demo gọi API cập nhật kho
-  // Ở đây rút gọn code cho nhẹ:
-  alert(`Đã nhập kho ${qty} sản phẩm ${pid}`);
+  if (!pid || qty <= 0) {
+    document.getElementById('crudStatus').innerText = "⚠️ Nhập mã SP và số lượng hợp lệ!";
+    return;
+  }
+
+  document.getElementById('crudStatus').innerText = "⏳ Đang nhập kho...";
+  
+  try {
+    const response = await fetch(`${API_BASE}/api/stock/import`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ product_id: pid, qty: qty })
+    });
+    
+    const result = await response.json();
+    
+    if (response.ok) {
+      document.getElementById('crudStatus').innerText = `✅ Đã nhập ${qty} SP "${pid}" | Tồn mới: ${result.new_stock}`;
+      // Reload dự báo nếu đang xem sản phẩm này
+      if(document.getElementById('productId').value == pid) loadForecast();
+    } else {
+      document.getElementById('crudStatus').innerText = `❌ Lỗi: ${result.message || 'Unknown error'}`;
+    }
+  } catch (err) {
+    document.getElementById('crudStatus').innerText = `❌ Lỗi kết nối: ${err.message}`;
+  }
 }
 
 async function generateSampleSales() {
