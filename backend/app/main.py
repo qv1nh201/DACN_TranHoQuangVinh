@@ -57,6 +57,13 @@ class SalePayload(BaseModel):
     ts: Optional[str] = None   # nếu không gửi, server sẽ tự gán
 
 
+class StockPayload(BaseModel):
+    """Payload cho nhập kho (tăng tồn kho)"""
+    product_id: str
+    qty: float
+    ts: Optional[str] = None
+
+
 # ========= Routes cơ bản =========
 
 @app.get("/")
@@ -85,13 +92,45 @@ def api_sensor(payload: SensorPayload):
 
 @app.post("/api/sales")
 def api_sales(payload: SalePayload):
+    """Bán hàng / Xuất kho - TRỪ tồn kho"""
     ts = payload.ts or datetime.now(timezone.utc).isoformat()
     data = {
         "qty": payload.qty,
         "ts": ts,
     }
-    save_sale(payload.product_id, data)
-    return {"status": "sale_saved", "product_id": payload.product_id, "data": data}
+    success = save_sale(payload.product_id, data)
+    if success:
+        return {"status": "sale_saved", "product_id": payload.product_id, "data": data}
+    else:
+        return {"status": "error", "message": "Failed to save sale"}
+
+
+@app.post("/api/stock/import")
+def api_import_stock(payload: StockPayload):
+    """Nhập kho - TĂNG tồn kho"""
+    ts = payload.ts or datetime.now(timezone.utc).isoformat()
+    
+    try:
+        product = get_product(payload.product_id)
+        if not product:
+            return {"status": "error", "message": "Product not found"}
+        
+        # Tăng tồn kho
+        current_stock = float(product.get("current_stock", 0))
+        new_stock = current_stock + payload.qty
+        
+        update_product(payload.product_id, {"current_stock": new_stock})
+        
+        return {
+            "status": "imported",
+            "product_id": payload.product_id,
+            "qty": payload.qty,
+            "old_stock": current_stock,
+            "new_stock": new_stock,
+            "ts": ts
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 
 # ========= 3. Lấy thông tin sản phẩm =========

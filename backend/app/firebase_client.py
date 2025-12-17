@@ -110,8 +110,36 @@ def save_sensor(device_id: str, data: dict):
 # ================== 2. SALES / DEMAND ==================
 
 def save_sale(product_id: str, data: dict):
-    if product_id and data:
+    """Lưu lịch sử bán hàng và TRỪ TỒN KHO"""
+    if not product_id or not data:
+        return False
+    
+    try:
+        qty = float(data.get("qty", 0))
+        
+        # 1. Lưu lịch sử bán hàng
         db.reference(f"sales_history/{product_id}").push(data)
+        print(f"📤 Đã lưu lịch sử bán: {product_id} - qty: {qty}")
+        
+        # 2. Trừ tồn kho (current_stock)
+        product_ref = db.reference(f"products/{product_id}")
+        product = product_ref.get()
+        
+        if product:
+            current_stock = float(product.get("current_stock", 0))
+            new_stock = current_stock - qty
+            
+            # Cập nhật tồn kho mới
+            product_ref.update({"current_stock": new_stock})
+            print(f"📦 Đã cập nhật tồn kho {product_id}: {current_stock} → {new_stock}")
+        else:
+            print(f"⚠️ Không tìm thấy sản phẩm {product_id} để trừ tồn kho")
+        
+        return True
+        
+    except Exception as e:
+        print(f"❌ Error save_sale({product_id}): {e}")
+        return False
 
 def get_sales_history(product_id: str, limit: int = 30):
     if not product_id: return []
