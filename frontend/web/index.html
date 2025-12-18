@@ -482,36 +482,18 @@ async function importStock() {
   }
 }
 
-async function generateSampleSalesForMA() {
+async function generateSampleSales() {
   const pid = document.getElementById('productId').value.trim();
-  const days = parseInt(document.getElementById('sampleCount').value); // Coi count là số ngày
-  const statusElem = document.getElementById('sampleStatus');
-
-  statusElem.innerText = "Đang tạo dữ liệu lịch sử...";
-
-  for (let i = days; i >= 0; i--) {
-    // Giả lập ngày lùi dần: hôm nay, hôm qua, hôm kia...
-    const date = new Date();
-    date.setDate(date.getDate() - i);
-
-    // Tạo số lượng bán có biến động nhẹ nhưng ổn định
-    // (Ví dụ: trung bình bán 20 cái, dao động trong khoảng 15-25)
-    const baseQty = 20;
-    const randomVariation = Math.floor(Math.random() * 10) - 5; 
-    const finalQty = baseQty + randomVariation;
-
-    await fetch(`${API_BASE}/api/sales`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ 
-        product_id: pid, 
-        qty: finalQty,
-        sale_date: date.toISOString().split('T')[0] // Gửi định dạng YYYY-MM-DD
-      })
-    });
-  }
+  const count = document.getElementById('sampleCount').value;
+  document.getElementById('sampleStatus').innerText = "Đang tạo...";
   
-  statusElem.innerText = "Đã xong! Giờ hãy chạy Moving Average.";
+  for (let i = 0; i < count; i++) {
+     await fetch(`${API_BASE}/api/sales`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ product_id: pid, qty: Math.floor(Math.random()*30)+10 })
+     });
+  }
+  document.getElementById('sampleStatus').innerText = "Đã xong!";
   loadForecast();
 }
 /* =============== HÀM XUẤT BÁO CÁO EXCEL (CSV) =============== */
